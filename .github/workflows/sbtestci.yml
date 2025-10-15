@@ -1,0 +1,104 @@
+# This workflow will run on a Windows machine, set up Python and Go,
+# install dependencies, and then sequentially test a Python server and a
+# web.exe server on the same port.
+
+name: JINGGEGESHIT-BH-CI
+
+on:
+  push:
+    branches: ["master"]
+  pull_request:
+    branches: ["master"]
+
+permissions:
+  contents: read
+
+jobs:
+  build-and-test:
+    runs-on: windows-latest
+
+    steps:
+      - name: Check out repository code
+        uses: actions/checkout@v4
+
+      - name: Set up Go
+        uses: actions/setup-go@v5
+        with:
+          go-version: "1.21"
+
+      - name: Install hey
+        run: go install github.com/rakyll/hey@latest
+        shell: pwsh
+
+      - name: Run server (main.py) in background
+        run: Start-Process -FilePath "sbw.exe"
+        shell: pwsh
+
+      - name: Wait for server to be ready
+        run: |
+          Write-Output "--- Waiting for Server ---"
+          $retries = 10
+          $delay = 2
+          for ($i=1; $i -le $retries; $i++) {
+            try {
+              $response = Invoke-WebRequest -Uri http://127.0.0.1:8080 -UseBasicParsing
+              if ($response.StatusCode -eq 200) {
+                Write-Output "Server is up and running!"
+                return
+              }
+            } catch {
+              Write-Output "Waiting for server... Attempt $i of $retries"
+              Start-Sleep -Seconds $delay
+            }
+          }
+          Write-Error "Server did not start in time."
+          exit 1
+        shell: pwsh
+
+      - name: Test server with hey and display results
+        run: |
+          hey http://127.0.0.1:8080 > mockshit_result.txt
+          Write-Output "--- App (main.py) Test Results ---"
+          Get-Content mockshit_result.txt
+          Write-Output "-------------------------------------------"
+        shell: pwsh
+
+      - name: Stop server
+        run: |
+          Stop-Process -Name sbw -ErrorAction SilentlyContinue
+          Write-Output "sbw process stopped. Waiting for port to be released."
+          Start-Sleep -Seconds 5
+        shell: pwsh
+
+      - name: Run EXE server (web.exe) in background
+        run: Start-Process ./web.exe
+        shell: pwsh
+
+      - name: Wait for EXE server to be ready
+        run: |
+          Write-Output "--- Waiting for EXE Server ---"
+          $retries = 10
+          $delay = 2
+          for ($i=1; $i -le $retries; $i++) {
+            try {
+              $response = Invoke-WebRequest -Uri http://127.0.0.1:8080 -UseBasicParsing
+              if ($response.StatusCode -eq 200) {
+                Write-Output "EXE Server is up and running!"
+                return
+              }
+            } catch {
+              Write-Output "Waiting for server... Attempt $i of $retries"
+              Start-Sleep -Seconds $delay
+            }
+          }
+          Write-Error "EXE Server did not start in time."
+          exit 1
+        shell: pwsh
+
+      - name: Test EXE server with hey and display results
+        run: |
+          hey http://127.0.0.1:8080 > jingshit_result.txt
+          Write-Output "--- EXE App (web.exe) Test Results ---"
+          Get-Content jingshit_result.txt
+          Write-Output "----------------------------------------"
+        shell: pwsh
