@@ -30,7 +30,7 @@ jobs:
         run: go install github.com/rakyll/hey@latest
         shell: pwsh
 
-      - name: Run server (main.py) in background
+      - name: Run server (sbw) in background
         run: Start-Process -FilePath "sbw.exe"
         shell: pwsh
 
@@ -58,7 +58,7 @@ jobs:
       - name: Test server with hey and display results
         run: |
           hey http://127.0.0.1:8080 > mockshit_result.txt
-          Write-Output "--- App (main.py) Test Results ---"
+          Write-Output "--- App (sbw) Test Results ---"
           Get-Content mockshit_result.txt
           Write-Output "-------------------------------------------"
         shell: pwsh
